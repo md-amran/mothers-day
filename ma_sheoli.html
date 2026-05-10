@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>মা — শেওলি বেগম</title>
+  <link rel="icon" href="website-11.png" type="image/png" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Anek+Bangla:wght@300;400;500;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── CSS Variables ── */
+    :root {
+      --rose:       #e8496a;
+      --rose-light: #ffd6df;
+      --rose-dark:  #b5274a;
+      --gold:       #d4a44c;
+      --gold-light: #f7e9c8;
+      --cream:      #fff8f0;
+      --deep:       #2a0a14;
+      --mid:        #6b2035;
+      --text:       #3d1a24;
+      --soft:       #9e6070;
+      --white:      #ffffff;
+      --font-display: 'Anek Bangla', sans-serif;
+      --font-body:    'Hind Siliguri', sans-serif;
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--cream);
+      color: var(--text);
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* ── Floating petals ── */
+    #petals-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Audio overlay (tap-to-start on mobile) ── */
+    #audio-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(42,10,20,0.88);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      text-align: center;
+      padding: 30px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: opacity 0.6s ease;
+    }
+    #audio-overlay.hidden { opacity: 0; pointer-events: none; }
+    #audio-overlay .ov-heart {
+      font-size: clamp(48px, 12vw, 80px);
+      animation: heartbeat 1.2s ease infinite;
+    }
+    #audio-overlay h2 {
+      font-family: var(--font-display);
+      font-size: clamp(22px, 6vw, 36px);
+      color: var(--gold-light);
+      font-weight: 700;
+      line-height: 1.4;
+    }
+    #audio-overlay p {
+      font-size: clamp(14px, 4vw, 18px);
+      color: rgba(255,255,255,0.75);
+    }
+    #start-btn {
+      margin-top: 10px;
+      background: linear-gradient(135deg, var(--rose), var(--rose-dark));
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 14px 42px;
+      font-family: var(--font-display);
+      font-size: clamp(16px, 4.5vw, 20px);
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 30px rgba(232,73,106,0.5);
+      transition: transform 0.2s, box-shadow 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #start-btn:active { transform: scale(0.95); box-shadow: 0 3px 14px rgba(232,73,106,0.4); }
+
+    /* ── Music player (mini) ── */
+    #music-player {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      z-index: 1000;
+      background: linear-gradient(135deg, var(--rose-dark), var(--deep));
+      border-radius: 50px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+      cursor: pointer;
+      transition: transform 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #music-player:active { transform: scale(0.95); }
+    #music-player .note { font-size: 20px; animation: spin-slow 3s linear infinite; }
+    #music-player span { color: white; font-size: 13px; font-weight: 600; }
+    @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    #music-player.paused .note { animation-play-state: paused; }
+
+    /* ── Lightbox (full-size image) ── */
+    #lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #lightbox.active { display: flex; opacity: 1; }
+    #lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    #lightbox .close-hint {
+      position: absolute;
+      bottom: 20px;
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 30% 40%, #7a1535 0%, #2a0a14 55%, #1a0509 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 24px 80px;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    /* decorative arcs */
+    .hero::before, .hero::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(212,164,76,0.18);
+      pointer-events: none;
+    }
+    .hero::before { width: 700px; height: 700px; top: -200px; right: -200px; }
+    .hero::after  { width: 500px; height: 500px; bottom: -150px; left: -150px; }
+
+    .hero-subtitle {
+      font-family: var(--font-display);
+      font-size: clamp(13px, 3.5vw, 16px);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 14px;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.3s forwards;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(44px, 14vw, 110px);
+      font-weight: 800;
+      line-height: 1.05;
+      color: var(--white);
+      text-shadow: 0 0 60px rgba(232,73,106,0.5);
+      opacity: 0;
+      animation: fadeUp 0.9s 0.5s forwards;
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, #f7c4d0, #e8496a, #d4a44c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-name {
+      font-family: var(--font-display);
+      font-size: clamp(26px, 8vw, 58px);
+      font-weight: 700;
+      color: var(--gold-light);
+      margin: 10px 0 28px;
+      opacity: 0;
+      animation: fadeUp 0.9s 0.75s forwards;
+    }
+
+    .hero-divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 0 auto 32px;
+      opacity: 0;
+      animation: fadeUp 0.8s 1s forwards;
+    }
+    .hero-divider .line { width: 60px; height: 1px; background: linear-gradient(to right, transparent, var(--gold)); }
+    .hero-divider .line:last-child { background: linear-gradient(to left, transparent, var(--gold)); }
+    .hero-divider .diamond { width: 8px; height: 8px; background: var(--gold); transform: rotate(45deg); }
+
+    .hero-tagline {
+      font-size: clamp(16px, 4.5vw, 22px);
+      color: rgba(255,255,255,0.75);
+      max-width: 540px;
+      line-height: 1.8;
+      opacity: 0;
+      animation: fadeUp 0.9s 1.1s forwards;
+    }
+
+    .hero-scroll {
+      margin-top: 50px;
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      opacity: 0;
+      animation: fadeUp 0.8s 1.5s forwards, bounce 2s 2.5s ease infinite;
+    }
+    .hero-scroll::after { content: ' ↓'; }
+
+    /* ── SECTION BASE ── */
+    section { position: relative; z-index: 1; }
+
+    /* ── PHOTO SECTION ── */
+    .photos-section {
+      background: linear-gradient(180deg, #2a0a14 0%, #f9e8ed 30%);
+      padding: 80px 24px;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    .section-label {
+      font-size: clamp(11px, 3vw, 13px);
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--rose);
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 8vw, 52px);
+      font-weight: 800;
+      color: var(--deep);
+      line-height: 1.2;
+    }
+    .section-title .highlight { color: var(--rose); }
+
+    .photos-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 480px) {
+      .photos-grid { grid-template-columns: 1fr; max-width: 340px; }
+    }
+
+    .photo-card {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 12px 50px rgba(107,32,53,0.25);
+      aspect-ratio: 3 / 4;
+      background: linear-gradient(135deg, var(--rose-light), #fce4ec);
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .photo-card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 22px 60px rgba(107,32,53,0.35); }
+
+    .photo-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* PLACEHOLDER shown when no image loaded yet */
+    .photo-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #fce4ec, #f8bbd0);
+    }
+    .photo-placeholder .ph-icon { font-size: 52px; opacity: 0.5; }
+    .photo-placeholder p {
+      font-size: 13px;
+      color: var(--mid);
+      font-weight: 600;
+      text-align: center;
+      padding: 0 16px;
+      line-height: 1.6;
+    }
+    /* Once image is loaded, hide placeholder */
+    .photo-card img.loaded + .photo-placeholder { display: none; }
+
+    /* Upload label (shown until image provided) */
+    .upload-hint {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: var(--soft);
+      line-height: 1.8;
+    }
+    .upload-hint strong { color: var(--rose-dark); }
+
+    /* ── LOVE LETTER ── */
+    .letter-section {
+      background: #f2e4dc;
+      padding: 90px 24px;
+    }
+    .letter-card {
+      max-width: 680px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 32px;
+      padding: clamp(32px, 8vw, 64px);
+      box-shadow: 0 8px 60px rgba(107,32,53,0.1);
+      border: 1px solid rgba(232,73,106,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .letter-card::before {
+      content: '❝';
+      position: absolute;
+      top: -10px; left: 20px;
+      font-size: 160px;
+      color: rgba(232,73,106,0.06);
+      font-family: Georgia, serif;
+      line-height: 1;
+      pointer-events: none;
+    }
+    .letter-greeting {
+      font-family: var(--font-display);
+      font-size: clamp(20px, 5vw, 28px);
+      font-weight: 700;
+      color: var(--rose-dark);
+      margin-bottom: 24px;
+    }
+    .letter-body {
+      font-size: clamp(15px, 4vw, 19px);
+      line-height: 2;
+      color: var(--text);
+      font-weight: 400;
+    }
+    .letter-body p { margin-bottom: 20px; }
+    .letter-body p:last-child { margin-bottom: 0; }
+    .letter-sign {
+      margin-top: 36px;
+      text-align: right;
+      font-family: var(--font-display);
+      font-size: clamp(15px, 4vw, 18px);
+      color: var(--soft);
+    }
+    .letter-sign strong {
+      display: block;
+      font-size: clamp(20px, 5.5vw, 26px);
+      color: var(--rose-dark);
+      margin-top: 4px;
+    }
+
+    /* ── MEMORIES / CARDS ── */
+    .memories-section {
+      background: linear-gradient(180deg, var(--cream), #fce8ef);
+      padding: 80px 24px;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .mem-card {
+      background: white;
+      border-radius: 24px;
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: 0 4px 30px rgba(107,32,53,0.1);
+      border: 1px solid rgba(232,73,106,0.08);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .mem-card:hover { transform: translateY(-6px); box-shadow: 0 12px 40px rgba(107,32,53,0.18); }
+    .mem-card .icon { font-size: 40px; margin-bottom: 16px; display: block; }
+    .mem-card h3 {
+      font-family: var(--font-display);
+      font-size: clamp(17px, 4.5vw, 21px);
+      font-weight: 700;
+      color: var(--deep);
+      margin-bottom: 12px;
+    }
+    .mem-card p { font-size: clamp(14px, 3.5vw, 16px); color: var(--soft); line-height: 1.8; }
+
+    /* ── DUA (Prayer) SECTION ── */
+    .dua-section {
+      background: linear-gradient(135deg, #2a0a14 0%, #6b2035 100%);
+      padding: 90px 24px;
+      text-align: center;
+    }
+    .dua-section .section-label { color: var(--gold); }
+    .dua-section .section-title { color: white; }
+    .dua-text {
+      max-width: 660px;
+      margin: 36px auto 0;
+      font-size: clamp(17px, 4.5vw, 22px);
+      color: rgba(255,255,255,0.85);
+      line-height: 2.2;
+      font-weight: 300;
+    }
+    .dua-text strong {
+      color: var(--gold-light);
+      font-weight: 600;
+    }
+    .arabic {
+      font-size: clamp(22px, 6vw, 32px);
+      color: var(--gold);
+      margin: 24px 0;
+      font-weight: 400;
+      line-height: 1.8;
+      direction: rtl;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--deep);
+      text-align: center;
+      padding: 40px 24px;
+      z-index: 1;
+      position: relative;
+    }
+    footer .hearts { font-size: 28px; letter-spacing: 6px; margin-bottom: 12px; display: block; }
+    footer p { color: rgba(255,255,255,0.5); font-size: 14px; }
+    footer p strong { color: var(--gold); }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(26px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      14%       { transform: scale(1.15); }
+      28%       { transform: scale(1); }
+      42%       { transform: scale(1.08); }
+      70%       { transform: scale(1); }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(8px); }
+    }
+    @keyframes floatUp {
+      0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(-110vh) rotate(720deg); }
+    }
+
+    /* ── Scroll-reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.22s; }
+    .reveal-delay-3 { transition-delay: 0.34s; }
+
+    /* ── Responsive tweaks ── */
+    @media (max-width: 600px) {
+      .hero-title { font-size: clamp(40px, 16vw, 72px); }
+      .photos-section { padding: 60px 16px; }
+      .letter-section { padding: 60px 16px; }
+      .memories-section { padding: 60px 16px; }
+      .dua-section { padding: 60px 16px; }
+      #music-player { bottom: 12px; right: 12px; padding: 8px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Canvas for floating petals -->
+<canvas id="petals-canvas"></canvas>
+
+<!-- Background audio (autoplay attempt) -->
+<audio id="bg-audio" loop preload="auto">
+  <!--
+    ╔══════════════════════════════════════════════════════╗
+    ║  ➤ আপনার গানের ফাইলটি এখানে রাখুন                  ║
+    ║  Replace "your-song.mp3" with your actual file name  ║
+    ║  Put the audio file in the same folder as this HTML  ║
+    ╚══════════════════════════════════════════════════════╝
+  -->
+  <source src="ma.mp3" type="audio/mpeg" />
+  <source src="ma.mp3" type="audio/ogg" />
+</audio>
+
+<!-- Tap-to-start overlay (needed for iOS / Android autoplay policy) -->
+<div id="audio-overlay">
+  <div class="ov-heart">❤️</div>
+  <h2>মা, তোমাকে ভালোবাসি</h2>
+  <p>শিউলি বেগমকে উৎসর্গ করা একটি বিশেষ উপহার</p>
+  <button id="start-btn" onclick="startExperience()">❤ প্রবেশ করুন</button>
+</div>
+
+<!-- Mini music player -->
+<div id="music-player" onclick="toggleMusic()" title="Music toggle">
+  <span class="note">🎵</span>
+  <span id="player-label">গান চলছে</span>
+</div>
+
+<!-- Lightbox for full-size image -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="পূর্ণ আকার" />
+  <span class="close-hint">বন্ধ করতে ক্লিক করুন</span>
+</div>
+
+<!-- ════ HERO ════ -->
+<section class="hero">
+  <p class="hero-subtitle">মা দিবসের শুভেচ্ছায়</p>
+  <h1 class="hero-title"><span>মা</span></h1>
+  <p class="hero-name">শিউলি বেগম ও হেনা বেগম</p>
+  <div class="hero-divider">
+    <div class="line"></div>
+    <div class="diamond"></div>
+    <div class="line"></div>
+  </div>
+  <p class="hero-tagline">
+    পৃথিবীর সবচেয়ে পবিত্র ডাক একটাই — <strong style="color:var(--gold-light)">"মা"</strong>।<br/>
+    তুমি আমার জীবনের সবচেয়ে বড় সম্পদ।<br/><br/>
+    <em style="color: var(--rose);">ছোট জি ❤️ মাইজ্জা জি</em>
+  </p>
+  <p class="hero-scroll">নিচে স্ক্রল করুন</p>
+</section>
+
+<!-- ════ PHOTOS ════ -->
+<section class="photos-section">
+  <div class="section-header reveal">
+    <p class="section-label">আমার মায়ের স্মৃতি</p>
+    <h2 class="section-title">মায়ের <span class="highlight">মুখখানি</span></h2>
+  </div>
+
+  <div class="photos-grid">
+    <!-- Photo 1 -->
+    <div class="photo-card reveal reveal-delay-1" onclick="openLightbox('ma.jpg')">
+      <!--
+        ╔══════════════════════════════════════════════════════╗
+        ║  ছবি ১ — Replace "photo1.jpg" with your file name   ║
+        ║  Put your image file in the same folder              ║
+        ╚══════════════════════════════════════════════════════╝
+      -->
+      <img src="ma.jpg" alt="শেওলি বেগম - ছবি ১"
+           onload="this.classList.add('loaded')"
+           onerror="this.style.display='none'" />
+      <div class="photo-placeholder">
+        <span class="ph-icon">📸</span>
+        <p>এখানে মায়ের প্রথম ছবি যুক্ত করুন<br/><small>(photo1.jpg)</small></p>
+      </div>
+    </div>
+
+    <!-- Photo 2 -->
+    <div class="photo-card reveal reveal-delay-2" onclick="openLightbox('hena ma.jpg')">
+      <img src="hena ma.jpg" alt="শেওলি বেগম - ছবি ২"
+           onload="this.classList.add('loaded')"
+           onerror="this.style.display='none'" />
+      <div class="photo-placeholder">
+        <span class="ph-icon">📸</span>
+        <p>এখানে মায়ের দ্বিতীয় ছবি যুক্ত করুন<br/><small>(hena ma.jpg)</small></p>
+      </div>
+    </div>
+
+    </div>
+
+
+</section>
+
+<!-- ════ LOVE LETTER ════ -->
+<section class="letter-section">
+  <div class="section-header reveal">
+    <p class="section-label">হৃদয়ের কথা</p>
+    <h2 class="section-title">মা কেন <span class="highlight">অনন্য</span></h2>
+  </div>
+
+  <div class="letter-card reveal">
+    <p class="letter-greeting">প্রিয় মা,</p>
+    <div class="letter-body">
+      <p>
+        তোমার হাতের স্পর্শে যে উষ্ণতা পাই, সেটা পৃথিবীর আর কোথাও খুঁজে পাবো না।
+        ছোটবেলায় রাতে যখন ঘুমাতে পারতাম না, তুমি মাথায় হাত বুলিয়ে দিতে —
+        সেই হাতের ছোঁয়া আজও আমার বুকের মধ্যে আছে।
+      </p>
+      <p>
+        তুমি শুধু আমাকে জন্ম দাওনি, মা — তুমি আমাকে বাঁচতে শিখিয়েছ।
+        ভালো মানুষ হতে শিখিয়েছ। হাসতে শিখিয়েছ, কাঁদতেও শিখিয়েছ।
+        তোমার প্রতিটি ত্যাগের কথা মনে পড়লে চোখ ভিজে যায়।
+      </p>
+      <p>
+        আমি জানি, অনেক সময় তোমাকে কষ্ট দিয়েছি। অনেক কথা অব্যক্তই রয়ে গেছে।
+        কিন্তু আজকের এই দিনে শুধু একটু বলতে চাই —
+        <strong style="color: var(--rose-dark)">তোমাকে ভালোবাসি, মা। অনেক অনেক ভালোবাসি।</strong>
+      </p>
+      <p>
+        তুমি সুস্থ থাকো, সুখে থাকো — এটাই আমার জীবনের সবচেয়ে বড় চাওয়া।
+        তোমার জন্য দোয়া করি সবসময়, যেমন তুমি সবসময় আমার জন্য করো।
+      </p>
+    </div>
+    <div class="letter-sign">
+      তোমার প্রিয় সন্তান
+      <strong>❤ তোমার ধন মিয়া</strong>
+    </div>
+  </div>
+</section>
+
+<!-- ════ MEMORY CARDS ════ -->
+<section class="memories-section">
+  <div class="section-header reveal">
+    <p class="section-label">মায়ের গুণ</p>
+    <h2 class="section-title">মা কেন <span class="highlight">অনন্য</span></h2>
+  </div>
+
+  <div class="cards-grid">
+    <div class="mem-card reveal reveal-delay-1">
+      <span class="icon">🤲</span>
+      <h3>নিঃস্বার্থ ভালোবাসা</h3>
+      <p>মায়ের ভালোবাসায় কোনো শর্ত নেই, কোনো হিসাব নেই। শুধুই দেওয়া।</p>
+    </div>
+    <div class="mem-card reveal reveal-delay-2">
+      <span class="icon">🌺</span>
+      <h3>অফুরন্ত সাহস</h3>
+      <p>জীবনের প্রতিটি ঝড়ে মা আমাদের পাশে দাঁড়িয়ে থাকেন শক্ত পাহাড়ের মতো।</p>
+    </div>
+    <div class="mem-card reveal reveal-delay-3">
+      <span class="icon">🌙</span>
+      <h3>দোয়ার ছায়া</h3>
+      <p>মায়ের দোয়া সন্তানের সবচেয়ে বড় শক্তি — এটি আল্লাহর কাছে সরাসরি পৌঁছায়।</p>
+    </div>
+    <div class="mem-card reveal reveal-delay-1">
+      <span class="icon">🍚</span>
+      <h3>মায়ের রান্নার স্বাদ</h3>
+      <p>পৃথিবীর কোনো রেস্তোরাঁয় মায়ের হাতের রান্নার স্বাদ পাওয়া যায় না।</p>
+    </div>
+    <div class="mem-card reveal reveal-delay-2">
+      <span class="icon">💪</span>
+      <h3>অদম্য শক্তি</h3>
+      <p>সংসারের সব কষ্ট বুকে চেপে তিনি সবার মুখে হাসি ফোটান।</p>
+    </div>
+    <div class="mem-card reveal reveal-delay-3">
+      <span class="icon">🌸</span>
+      <h3>মায়ার আঁচল</h3>
+      <p>মায়ের আঁচলের নিচে বসলে পৃথিবীর সব ভয় চলে যায়।</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ DUA / PRAYER ════ -->
+<section class="dua-section">
+  <div class="section-header reveal">
+    <p class="section-label">আল্লাহর কাছে দোয়া</p>
+    <h2 class="section-title" style="color:white">মায়ের জন্য <span style="color:var(--gold)">প্রার্থনা</span></h2>
+  </div>
+
+  <div class="dua-text reveal">
+    <p class="arabic">رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا</p>
+    <p>
+      "হে আমার রব! তাদের উভয়ের প্রতি দয়া করুন, যেভাবে তারা শৈশবে আমাকে লালন-পালন করেছেন।"<br/>
+      <strong>(সূরা বনী ইসরাইল: ২৪)</strong>
+    </p>
+    <br/>
+    <p>
+      হে আল্লাহ! আমার মা <strong>শিউলি বেগম</strong>-কে দীর্ঘ, সুস্থ ও সুখী জীবন দান করুন।<br/>
+      তাঁর সকল গুনাহ মাফ করুন। তাঁকে জান্নাতুল ফেরদাউস নসীব করুন।<br/>
+      দুনিয়া ও আখিরাতে তাঁকে সর্বোত্তম পুরস্কার দিন। <strong>আমিন।</strong>
+    </p>
+  </div>
+</section>
+
+<!-- ════ FOOTER ════ -->
+<footer>
+  <span class="hearts">❤️ 💗 ❤️</span>
+  <p>ভালোবাসা ও শ্রদ্ধায় — <strong>শিউলি বেগম</strong>-কে উৎসর্গ করা</p>
+  <p style="margin-top:8px; font-size:12px; color:rgba(255,255,255,0.3);">মা দিবস ২০২৬ · সবসময় তোমাকে ভালোবাসি</p>
+</footer>
+
+<!-- ════ JAVASCRIPT ════ -->
+<script>
+  /* ── Audio setup ── */
+  var audio = document.getElementById('bg-audio');
+  var overlay = document.getElementById('audio-overlay');
+  var playerEl = document.getElementById('music-player');
+  var playerLabel = document.getElementById('player-label');
+  var isPlaying = false;
+
+  function startExperience() {
+    overlay.classList.add('hidden');
+    setTimeout(function() { overlay.style.display = 'none'; }, 700);
+    playAudio();
+  }
+
+  function playAudio() {
+    var promise = audio.play();
+    if (promise !== undefined) {
+      promise.then(function() {
+        isPlaying = true;
+        playerLabel.textContent = 'গান চলছে';
+        playerEl.classList.remove('paused');
+      }).catch(function() {
+        // autoplay blocked — overlay already shows
+      });
+    } else {
+      // Old browser fallback
+      isPlaying = true;
+    }
+  }
+
+  function toggleMusic() {
+    if (isPlaying) {
+      audio.pause();
+      isPlaying = false;
+      playerLabel.textContent = 'গান বন্ধ';
+      playerEl.classList.add('paused');
+    } else {
+      audio.play();
+      isPlaying = true;
+      playerLabel.textContent = 'গান চলছে';
+      playerEl.classList.remove('paused');
+    }
+  }
+
+  /* ── Lightbox ── */
+  var lightbox = document.getElementById('lightbox');
+  var lightboxImg = document.getElementById('lightbox-img');
+
+  function openLightbox(src) {
+    lightboxImg.src = src;
+    lightbox.classList.add('active');
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove('active');
+  }
+
+  // Close on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+  });
+
+  // Attempt autoplay immediately (works on some desktop/Android browsers)
+  (function attemptAutoplay() {
+    var p = audio.play();
+    if (p !== undefined) {
+      p.then(function() {
+        // Autoplay succeeded — hide overlay
+        overlay.classList.add('hidden');
+        setTimeout(function() { overlay.style.display = 'none'; }, 700);
+        isPlaying = true;
+      }).catch(function() {
+        // Autoplay blocked — keep overlay visible
+      });
+    }
+  })();
+
+  /* ── Scroll reveal ── */
+  function onScroll() {
+    var reveals = document.querySelectorAll('.reveal');
+    for (var i = 0; i < reveals.length; i++) {
+      var rect = reveals[i].getBoundingClientRect();
+      if (rect.top < window.innerHeight * 0.88) {
+        reveals[i].classList.add('visible');
+      }
+    }
+  }
+  window.addEventListener('scroll', onScroll);
+  window.addEventListener('resize', onScroll);
+  onScroll(); // run on load
+
+  /* ── Floating petals canvas ── */
+  (function initPetals() {
+    var canvas = document.getElementById('petals-canvas');
+    var ctx = canvas.getContext('2d');
+    var W, H;
+    var petals = [];
+    var PETAL_COUNT = 30;
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    var colors = ['#e8496a', '#f06292', '#ffd6df', '#f48fb1', '#d4a44c', '#f8bbd0'];
+
+    function Petal() {
+      this.reset();
+    }
+    Petal.prototype.reset = function() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * H - H;
+      this.r = 4 + Math.random() * 7;
+      this.color = colors[Math.floor(Math.random() * colors.length)];
+      this.speed = 0.6 + Math.random() * 1.2;
+      this.drift = (Math.random() - 0.5) * 0.8;
+      this.rot = Math.random() * Math.PI * 2;
+      this.rotSpeed = (Math.random() - 0.5) * 0.05;
+      this.opacity = 0.5 + Math.random() * 0.5;
+    };
+    Petal.prototype.update = function() {
+      this.y += this.speed;
+      this.x += this.drift;
+      this.rot += this.rotSpeed;
+      if (this.y > H + 20) this.reset();
+    };
+    Petal.prototype.draw = function() {
+      ctx.save();
+      ctx.globalAlpha = this.opacity;
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rot);
+      ctx.beginPath();
+      // heart shape
+      var s = this.r;
+      ctx.moveTo(0, -s * 0.3);
+      ctx.bezierCurveTo( s * 0.9, -s * 1.1,  s * 1.6,  s * 0.3, 0,  s);
+      ctx.bezierCurveTo(-s * 1.6,  s * 0.3, -s * 0.9, -s * 1.1, 0, -s * 0.3);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+      ctx.restore();
+    };
+
+    for (var i = 0; i < PETAL_COUNT; i++) {
+      var p = new Petal();
+      p.y = Math.random() * H; // stagger start positions
+      petals.push(p);
+    }
+
+    var raf;
+    function animate() {
+      ctx.clearRect(0, 0, W, H);
+      for (var i = 0; i < petals.length; i++) {
+        petals[i].update();
+        petals[i].draw();
+      }
+      raf = requestAnimationFrame(animate);
+    }
+    animate();
+  })();
+</script>
+</body>
+</html>
